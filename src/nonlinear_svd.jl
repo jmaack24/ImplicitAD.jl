@@ -12,13 +12,13 @@ end
 function _SVDVector(u, m, n, other)
 
     @assert(m > 0 && n > 0)
-    @assert(m*n == length(u))
+    @assert(m * n == length(u))
 
     umat = reshape(u, m, n)
     usvd = LinearAlgebra.svd(umat)
     (nsv, idx) = _make_index(usvd.S, other)
 
-    @assert(nsv <= min(m,n))
+    @assert(nsv <= min(m, n))
 
     sv = usvd.S[idx]
     uv = usvd.U[:, idx]
@@ -66,10 +66,10 @@ function Base.getindex(sv::SVDVector, idx::Integer)
     # println("SVD getindex")
     (i, j) = matrix_index(idx, sv.m, sv.n)
     # @show (i,j)
-    ui = @view sv.U[i,:]
-    vti = @view sv.Vt[:,j]
+    ui = @view sv.U[i, :]
+    vtj = @view sv.Vt[:, j]
     # return sv.singular_values[i] * LinearAlgebra.dot(ui, vti)
-    return LinearAlgebra.dot(sv.singular_values .* ui, vti)
+    return LinearAlgebra.dot(sv.singular_values .* ui, vtj)
 end
 
 function Base.IndexStyle(::SVDVector)
@@ -145,7 +145,7 @@ function _implicit_svd(solve, residual, x::AbstractVector{<:ForwardDiff.Dual{T}}
     if get(p, :forward_svd, false)
         tol = get(p, :tol, 0.0)
         nsv = get(p, :nsv, 3)
-        (m,n) = get(p, :matdim, (-1,-1))
+        (m, n) = get(p, :matdim, (-1, -1))
         yv = SVDVector(yv, m, n, tol > 0.0 ? tol : nsv)
     end
 
@@ -170,7 +170,7 @@ function ChainRulesCore.rrule(::typeof(_implicit_svd), solve, residual, x, p, dr
     # y = copy(solve(x, p))
     tol = get(p, :tol, 0.0)
     nsv = get(p, :nsv, 3)
-    (m,n) = get(p, :matdim, (-1,-1))
+    (m, n) = get(p, :matdim, (-1, -1))
     y = SVDVector(solve(x, p), m, n, tol > 0.0 ? tol : nsv)
 
     function pullback(ybar)
