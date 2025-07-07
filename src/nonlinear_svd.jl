@@ -171,16 +171,19 @@ function ChainRulesCore.rrule(::typeof(_implicit_svd), solve, residual, x, p, dr
     tol = get(p, :tol, 0.0)
     nsv = get(p, :nsv, 3)
     (m, n) = get(p, :matdim, (-1, -1))
-    y = SVDVector(solve(x, p), m, n, tol > 0.0 ? tol : nsv)
+    # y = SVDVector(solve(x, p), m, n, tol > 0.0 ? tol : nsv)
+    y = solve(x, p)
+    ysvd = SVDVector(y, m, n, tol > 0.0 ? tol : nsv)
 
     function pullback(ybar)
-        A = drdy(residual, y, x, p)
+        A = drdy(residual, ysvd, x, p)
         u = lsolve(A', ybar)
-        xbar = vjp(residual, y, x, p, -u)
+        xbar = vjp(residual, ysvd, x, p, -u)
+        # println("Running pullback: y[1] = ", ysvd[1])
         return NoTangent(), NoTangent(), NoTangent(), xbar, NoTangent(), NoTangent(), NoTangent()
     end
 
-    return y, pullback
+    return ysvd, pullback
 end
 
 
