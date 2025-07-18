@@ -9,13 +9,32 @@ struct SVDVector{T} <: AbstractVector{T}
     Vt::Matrix{T}
 end
 
+function _do_svd(umat)
+
+    try
+        usvd = LinearAlgebra.svd(umat; alg=LinearAlgebra.DivideAndConquer())
+        return usvd
+    catch e
+        if !isa(e, LinearAlgebra.LAPACKException)
+            rethrow(e)
+        else
+            @info("SVD::DivideAndConqueror failed. Using QRIteration")
+        end
+    end
+
+    usvd = LinearAlgebra.svd(umat; alg=LinearAlgebra.QRIteration())
+    return usvd
+
+end
+
 function _SVDVector(u, m, n, other)
 
     @assert(m > 0 && n > 0)
     @assert(m * n == length(u))
 
     umat = reshape(u, m, n)
-    usvd = LinearAlgebra.svd(umat)
+    usvd = _do_svd(umat)
+
     (nsv, idx) = _make_index(usvd.S, other)
 
     @assert(nsv <= min(m, n))
@@ -30,26 +49,26 @@ function _SVDVector(u, m, n, other)
     return SVDVector(m, n, nsv, sv, uv, vv)
 end
 
-function _SVDVector(u, other)
-    nsq = length(u)
-    n = Int(sqrt(nsq))
-    return _SVDVector(u, n, n, other)
-end
+# function _SVDVector(u, other)
+#     nsq = length(u)
+#     n = Int(sqrt(nsq))
+#     return _SVDVector(u, n, n, other)
+# end
 
-function SVDVector(u::AbstractVector, tol::Real)
-    @assert(tol >= 0.0)
-    return _SVDVector(u, tol)
-end
+# function SVDVector(u::AbstractVector, tol::Real)
+#     @assert(tol >= 0.0)
+#     return _SVDVector(u, tol)
+# end
 
 function SVDVector(u::AbstractVector, m::Integer, n::Integer, tol::Real)
     @assert(tol >= 0)
     return _SVDVector(u, m, n, tol)
 end
 
-function SVDVector(u::AbstractVector, nsv::Integer)
-    @assert(nsv >= 0)
-    return _SVDVector(u, nsv)
-end
+# function SVDVector(u::AbstractVector, nsv::Integer)
+#     @assert(nsv >= 0)
+#     return _SVDVector(u, nsv)
+# end
 
 function SVDVector(u::AbstractVector, m::Integer, n::Integer, nsv::Integer)
     @assert(nsv >= 0)
